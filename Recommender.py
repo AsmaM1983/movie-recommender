@@ -1,3 +1,4 @@
+pip install pyunpack patool
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -6,7 +7,7 @@ from datetime import datetime
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import rarfile
+from pyunpack import Archive
 import requests
 import os
 
