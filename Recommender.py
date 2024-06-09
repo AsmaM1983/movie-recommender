@@ -22,7 +22,7 @@ def extract_rar(file_path, extract_path):
         rf.extractall(extract_path)
 
 # URL du fichier RAR sur GitHub
-movies_rar_url = 'https://github.com/votre-repository-path/movies_df.rar'
+movies_rar_url = 'https://github.com/AsmaM1983/movie-recommende/movies_df.rar'
 
 # Chemin local du fichier RAR à télécharger
 movies_rar_path = './movies_df.rar'
