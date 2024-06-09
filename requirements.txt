@@ -6,3 +6,4 @@ pickle-mixin
 pyunpack
 patool
 requests
+rarfiles
