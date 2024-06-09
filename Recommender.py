@@ -9,20 +9,31 @@ from sklearn.metrics.pairwise import cosine_similarity
 import rarfile
 import requests
 from io import BytesIO
+import os
 
 # Fonction pour télécharger un fichier depuis une URL
 def download_file(url, dest_path):
     response = requests.get(url)
-    with open(dest_path, 'wb') as f:
-        f.write(response.content)
+    if response.status_code == 200:
+        with open(dest_path, 'wb') as f:
+            f.write(response.content)
+        st.success(f"Fichier téléchargé avec succès : {dest_path}")
+    else:
+        st.error(f"Erreur de téléchargement du fichier : {response.status_code}")
 
 # Fonction pour extraire un fichier RAR
 def extract_rar(file_path, extract_path):
-    with rarfile.RarFile(file_path) as rf:
-        rf.extractall(extract_path)
+    try:
+        with rarfile.RarFile(file_path) as rf:
+            rf.extractall(extract_path)
+        st.success(f"Fichier extrait avec succès : {extract_path}")
+    except rarfile.BadRarFile:
+        st.error("Le fichier n'est pas un fichier RAR valide.")
+    except Exception as e:
+        st.error(f"Erreur d'extraction du fichier RAR : {str(e)}")
 
 # URL du fichier RAR sur GitHub
-movies_rar_url = 'https://github.com/AsmaM1983/movie-recommende/movies_df.rar'
+movies_rar_url = 'https://github.com/AsmaM1983/movie-recommender/blob/main/movies_df.rar'
 
 # Chemin local du fichier RAR à télécharger
 movies_rar_path = './movies_df.rar'
@@ -30,15 +41,20 @@ movies_rar_path = './movies_df.rar'
 # Télécharger le fichier RAR depuis GitHub
 download_file(movies_rar_url, movies_rar_path)
 
+# Chemin d'extraction
+extract_path = './'
+
 # Extraire le fichier RAR
-extract_path = './'  # Chemin où le fichier sera extrait
 extract_rar(movies_rar_path, extract_path)
 
 # Charger les données et les modèles
-movies_df = pd.read_csv('movies_df.csv')  # Charger le fichier CSV extrait
-ratings_df = pd.read_csv('ratings_small.csv')  # Charger un autre fichier CSV avec les évaluations des utilisateurs
-with open('best_algo_model.pkl', 'rb') as f:
-    algo_model = pickle.load(f)  # Charger le modèle depuis le fichier pickle
+if os.path.exists('movies_df.csv') and os.path.exists('ratings_small.csv') and os.path.exists('best_algo_model.pkl'):
+    movies_df = pd.read_csv('movies_df.csv')  # Charger le fichier CSV extrait
+    ratings_df = pd.read_csv('ratings_small.csv')  # Charger un autre fichier CSV avec les évaluations des utilisateurs
+    with open('best_algo_model.pkl', 'rb') as f:
+        algo_model = pickle.load(f)  # Charger le modèle depuis le fichier pickle
+else:
+    st.error("Les fichiers nécessaires n'ont pas été trouvés après extraction.")
 
 # Calculer le weighted score et la similarité cosinus
 
