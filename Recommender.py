@@ -8,7 +8,6 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import rarfile
 import requests
-from io import BytesIO
 import os
 
 # Fonction pour télécharger un fichier depuis une URL
@@ -32,26 +31,32 @@ def extract_rar(file_path, extract_path):
     except Exception as e:
         st.error(f"Erreur d'extraction du fichier RAR : {str(e)}")
 
-# URL du fichier RAR sur GitHub
+# URLs des fichiers nécessaires sur GitHub
 movies_rar_url = 'https://github.com/AsmaM1983/movie-recommender/blob/main/movies_df.rar'
+ratings_url = 'https://github.com/AsmaM1983/movie-recommender/blob/main/ratings_small.csv'
+model_url = 'https://github.com/AsmaM1983/movie-recommender/blob/main/best_algo_model.pkl'
 
-# Chemin local du fichier RAR à télécharger
+# Chemins locaux des fichiers
 movies_rar_path = './movies_df.rar'
+ratings_path = './ratings_small.csv'
+model_path = './best_algo_model.pkl'
 
-# Télécharger le fichier RAR depuis GitHub
+# Télécharger les fichiers depuis GitHub
 download_file(movies_rar_url, movies_rar_path)
+download_file(ratings_url, ratings_path)
+download_file(model_url, model_path)
 
-# Chemin d'extraction
+# Chemin d'extraction pour le fichier RAR
 extract_path = './'
 
 # Extraire le fichier RAR
 extract_rar(movies_rar_path, extract_path)
 
 # Charger les données et les modèles
-if os.path.exists('movies_df.csv') and os.path.exists('ratings_small.csv') and os.path.exists('best_algo_model.pkl'):
+if os.path.exists('movies_df.csv') and os.path.exists(ratings_path) and os.path.exists(model_path):
     movies_df = pd.read_csv('movies_df.csv')  # Charger le fichier CSV extrait
-    ratings_df = pd.read_csv('ratings_small.csv')  # Charger un autre fichier CSV avec les évaluations des utilisateurs
-    with open('best_algo_model.pkl', 'rb') as f:
+    ratings_df = pd.read_csv(ratings_path)  # Charger un autre fichier CSV avec les évaluations des utilisateurs
+    with open(model_path, 'rb') as f:
         algo_model = pickle.load(f)  # Charger le modèle depuis le fichier pickle
 else:
     st.error("Les fichiers nécessaires n'ont pas été trouvés après extraction.")
