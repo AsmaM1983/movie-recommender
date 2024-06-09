@@ -4,16 +4,11 @@ import numpy as np
 import pickle
 from datetime import datetime
 from sklearn.preprocessing import MinMaxScaler
-import streamlit as st
-import pandas as pd
-import numpy as np
-import pickle
-from datetime import datetime
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import zipfile
+import rarfile
 import requests
+from io import BytesIO
 import os
 
 # Fonction pour télécharger un fichier depuis une URL
@@ -26,46 +21,41 @@ def download_file(url, dest_path):
     else:
         st.error(f"Erreur de téléchargement du fichier : {response.status_code}")
 
-# Fonction pour extraire un fichier ZIP
-def extract_zip(file_path, extract_path):
+# Fonction pour extraire un fichier RAR
+def extract_rar(file_path, extract_path):
     try:
-        with zipfile.ZipFile(file_path, 'r') as zip_ref:
-            zip_ref.extractall(extract_path)
+        with rarfile.RarFile(file_path) as rf:
+            rf.extractall(extract_path)
         st.success(f"Fichier extrait avec succès : {extract_path}")
-    except zipfile.BadZipFile:
-        st.error("Le fichier n'est pas un fichier ZIP valide.")
+    except rarfile.BadRarFile:
+        st.error("Le fichier n'est pas un fichier RAR valide.")
     except Exception as e:
-        st.error(f"Erreur d'extraction du fichier ZIP : {str(e)}")
+        st.error(f"Erreur d'extraction du fichier RAR : {str(e)}")
 
-# URLs des fichiers nécessaires sur GitHub
-movies_zip_url = 'https://github.com/AsmaM1983/movie-recommender/blob/main/movies_df.rar'
-ratings_url = 'https://github.com/AsmaM1983/movie-recommender/blob/main/ratings_small.csv'
-model_url = 'https://github.com/AsmaM1983/movie-recommender/blob/main/best_algo_model.pkl'
+# URL du fichier RAR sur GitHub
+movies_rar_url = 'https://github.com/AsmaM1983/movie-recommender/blob/main/movies_df.rar'
 
-# Chemins locaux des fichiers
-movies_zip_path = './movies_df.rar'
-ratings_path = './ratings_small.csv'
-model_path = './best_algo_model.pkl'
+# Chemin local du fichier RAR à télécharger
+movies_rar_path = './movies_df.rar'
 
-# Télécharger les fichiers depuis GitHub
-download_file(movies_zip_url, movies_zip_path)
-download_file(ratings_url, ratings_path)
-download_file(model_url, model_path)
+# Télécharger le fichier RAR depuis GitHub
+download_file(movies_rar_url, movies_rar_path)
 
-# Chemin d'extraction pour le fichier ZIP
+# Chemin d'extraction
 extract_path = './'
 
-# Extraire le fichier ZIP
-extract_zip(movies_zip_path, extract_path)
+# Extraire le fichier RAR
+extract_rar(movies_rar_path, extract_path)
 
 # Charger les données et les modèles
-if os.path.exists('movies_df.csv') and os.path.exists(ratings_path) and os.path.exists(model_path):
+if os.path.exists('movies_df.csv') and os.path.exists('ratings_small.csv') and os.path.exists('best_algo_model.pkl'):
     movies_df = pd.read_csv('movies_df.csv')  # Charger le fichier CSV extrait
-    ratings_df = pd.read_csv(ratings_path)  # Charger un autre fichier CSV avec les évaluations des utilisateurs
-    with open(model_path, 'rb') as f:
+    ratings_df = pd.read_csv('ratings_small.csv')  # Charger un autre fichier CSV avec les évaluations des utilisateurs
+    with open('best_algo_model.pkl', 'rb') as f:
         algo_model = pickle.load(f)  # Charger le modèle depuis le fichier pickle
 else:
     st.error("Les fichiers nécessaires n'ont pas été trouvés après extraction.")
+
 # Calculer le weighted score et la similarité cosinus
 
 # Filtrer les films ayant des valeurs manquantes pour vote_average ou vote_count
