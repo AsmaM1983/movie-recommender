@@ -38,12 +38,12 @@ def extract_zip(file_path, extract_path):
         st.error(f"Erreur d'extraction du fichier ZIP : {str(e)}")
 
 # URLs des fichiers nécessaires sur GitHub
-movies_zip_url = 'https://github.com/AsmaM1983/movie-recommender/blob/main/movies_df.zip'
+movies_zip_url = 'https://github.com/AsmaM1983/movie-recommender/blob/main/movies_df.rar'
 ratings_url = 'https://github.com/AsmaM1983/movie-recommender/blob/main/ratings_small.csv'
 model_url = 'https://github.com/AsmaM1983/movie-recommender/blob/main/best_algo_model.pkl'
 
 # Chemins locaux des fichiers
-movies_zip_path = './movies_df.zip'
+movies_zip_path = './movies_df.rar'
 ratings_path = './ratings_small.csv'
 model_path = './best_algo_model.pkl'
 
