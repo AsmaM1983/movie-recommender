@@ -32,9 +32,9 @@ def extract_rar(file_path, extract_path):
         st.error(f"Erreur d'extraction du fichier RAR : {str(e)}")
 
 # URLs des fichiers nécessaires sur GitHub
-movies_rar_url = 'https://github.com/AsmaM1983/movie-recommender/blob/main/movies_df.rar'
-ratings_url = 'https://github.com/AsmaM1983/movie-recommender/blob/main/ratings_small.csv'
-model_url = 'https://github.com/AsmaM1983/movie-recommender/blob/main/best_algo_model.pkl'
+movies_rar_url = 'https://github.com/AsmaM1983/movie-recommender/raw/main/movies_df.rar'
+ratings_url = 'https://github.com/AsmaM1983/movie-recommender/raw/main/ratings_small.csv'
+model_url = 'https://github.com/AsmaM1983/movie-recommender/raw/main/best_algo_model.pkl'
 
 # Chemins locaux des fichiers
 movies_rar_path = './movies_df.rar'
@@ -47,14 +47,17 @@ download_file(ratings_url, ratings_path)
 download_file(model_url, model_path)
 
 # Chemin d'extraction pour le fichier RAR
-extract_path = './'
+extract_path = './extracted_movies/'
 
 # Extraire le fichier RAR
+if not os.path.exists(extract_path):
+    os.makedirs(extract_path)
 extract_rar(movies_rar_path, extract_path)
 
 # Charger les données et les modèles
-if os.path.exists('movies_df.csv') and os.path.exists(ratings_path) and os.path.exists(model_path):
-    movies_df = pd.read_csv('movies_df.csv')  # Charger le fichier CSV extrait
+movies_csv_path = os.path.join(extract_path, 'movies_df.csv')
+if os.path.exists(movies_csv_path) and os.path.exists(ratings_path) and os.path.exists(model_path):
+    movies_df = pd.read_csv(movies_csv_path)  # Charger le fichier CSV extrait
     ratings_df = pd.read_csv(ratings_path)  # Charger un autre fichier CSV avec les évaluations des utilisateurs
     with open(model_path, 'rb') as f:
         algo_model = pickle.load(f)  # Charger le modèle depuis le fichier pickle
