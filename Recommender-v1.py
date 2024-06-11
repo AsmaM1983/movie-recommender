@@ -20,57 +20,35 @@ def download_file(url, dest_path):
         st.error(f"Erreur de téléchargement du fichier : {response.status_code}")
 
 # URLs des fichiers nécessaires sur GitHub
-movies_urls = [
-    'https://github.com/AsmaM1983/movie-recommender/blob/main/movies_df1.csv',
-    'https://github.com/AsmaM1983/movie-recommender/blob/main/movies_df2.csv',
-    'https://github.com/AsmaM1983/movie-recommender/blob/main/movies_df3.csv',
-    'https://github.com/AsmaM1983/movie-recommender/blob/main/movies_df4.csv',
-    'https://github.com/AsmaM1983/movie-recommender/blob/main/movies_df5.csv',
-    'https://github.com/AsmaM1983/movie-recommender/blob/main/movies_df6.csv'
-]
 ratings_url = 'https://github.com/AsmaM1983/movie-recommender/blob/main/ratings_small.csv'
 model_url = 'https://github.com/AsmaM1983/movie-recommender/blob/main/best_algo_model.pkl'
 
 # Chemins locaux des fichiers
-movies_paths = [
-    './movies_df1.csv',
-    './movies_df2.csv',
-    './movies_df3.csv',
-    './movies_df4.csv',
-    './movies_df5.csv',
-    './movies_df6.csv'
-]
-merged_movies_df_path = './movies_df.csv'
 ratings_path = './ratings_small.csv'
 model_path = './best_algo_model.pkl'
 
 # Télécharger les fichiers depuis GitHub
-for url, path in zip(movies_urls, movies_paths):
-    download_file(url, path)
 download_file(ratings_url, ratings_path)
 download_file(model_url, model_path)
 
-# Fusionner les fichiers CSV
-def merge_csv(files, output_file):
-    try:
-        dataframes = [pd.read_csv(file) for file in files]
-        merged_df = pd.concat(dataframes)
-        merged_df.to_csv(output_file, index=False)
-        st.success(f"Fichiers fusionnés avec succès en : {output_file}")
-    except Exception as e:
-        st.error(f"Erreur lors de la fusion des fichiers CSV : {str(e)}")
+# Lire les fichiers CSV divisés
+movies_df1 = pd.read_csv('movies_df1.csv')
+movies_df2 = pd.read_csv('movies_df2.csv')
+movies_df3 = pd.read_csv('movies_df3.csv')
+movies_df4 = pd.read_csv('movies_df4.csv')
+movies_df5 = pd.read_csv('movies_df5.csv')
+movies_df6 = pd.read_csv('movies_df6.csv')
 
-# Fusionner les fichiers CSV
-merge_csv(movies_paths, merged_movies_df_path)
+# Concatenation des DataFrames
+movies_df = pd.concat([movies_df1, movies_df2, movies_df3, movies_df4, movies_df5, movies_df6])
 
 # Charger les données et les modèles
-if os.path.exists(merged_movies_df_path) and os.path.exists(ratings_path) and os.path.exists(model_path):
-    movies_df = pd.read_csv(merged_movies_df_path)  # Charger le fichier CSV fusionné
+if not movies_df.empty and os.path.exists(ratings_path) and os.path.exists(model_path):
     ratings_df = pd.read_csv(ratings_path)  # Charger un autre fichier CSV avec les évaluations des utilisateurs
     with open(model_path, 'rb') as f:
         algo_model = pickle.load(f)  # Charger le modèle depuis le fichier pickle
 else:
-    st.error("Les fichiers nécessaires n'ont pas été trouvés après fusion.")
+    st.error("Les fichiers nécessaires n'ont pas été trouvés après extraction.")
 
 # Calculer le weighted score et la similarité cosinus
 
@@ -168,30 +146,27 @@ def show_movie_details(movie_ids, movies_df, combined_scores):
         score = combined_scores.get(row['id'], 0)
         st.write(f"Title: {row['title']} ({row['year']}), Genres: {', '.join(row['genres'])}, Director: {row['director']}, Combined Score: {score:.2f}")
 
-def hybrid_recommendation(user_id, n=10):
+def hybrid_recommendation(user_id, n_top, ratings_df, movies_df, weighted_df, algo_model):
     user_ratings = ratings_df[ratings_df['userId'] == user_id]
-    predictions = []
-    for index, row in user_ratings.iterrows():
-        pred = algo_model.predict(row['userId'], row['movieId']).est
-        predictions.append((row['movieId'], pred))
-    top_collab_movies = [x[0] for x in sorted(predictions, key=lambda x: x[1], reverse=True)[:n]]
-    last_watched_movieId = user_ratings.iloc[-1]['movieId']
-    if last_watched_movieId in movies_df['id'].values:
-        watched_movie_idx = movies_df[movies_df['id'] == last_watched_movieId].index[0]
-        similar_movies = list(enumerate(cosine_sim[watched_movie_idx]))
-        sorted_similar_movies = sorted(similar_movies, key=lambda x: x[1], reverse=True)[1:n+1]
-        top_content_movies = [movies_df.iloc[i[0]]['id'] for i in sorted_similar_movies]
-    else:
-        top_content_movies = []
-
-    combined_scores = fetch_weighted_scores(top_collab_movies + top_content_movies, weighted_df)
-    combined_scores = {k: v for k, v in sorted(combined_scores.items(), key=lambda item: item[1], reverse=True)}
-    top_movie_ids = list(combined_scores.keys())[:n]
-
-    show_movie_details(top_movie_ids, movies_df, combined_scores)
+    user_rated_movies = user_ratings['movieId'].tolist()
+    weighted_scores = fetch_weighted_scores(user_rated_movies, weighted_df)
+    unrated_movies = movies_df[~movies_df['id'].isin(user_rated_movies)]['id'].tolist()
+    recommendations = []
+    for movie_id in unrated_movies:
+        score = hybrid_predicted_rating(user_id, movie_id, algo_model)
+        recommendations.append((movie_id, score))
+    recommendations = sorted(recommendations, key=lambda x: x[1], reverse=True)[:n_top]
+    recommended_movie_ids = [rec[0] for rec in recommendations]
+    combined_scores = {rec[0]: rec[1] for rec in recommendations}
+    show_movie_details(recommended_movie_ids, movies_df, combined_scores)
 
 # Interface utilisateur Streamlit
-st.title("Recommandation de Films")
-user_id = st.number_input("Entrez l'ID utilisateur", min_value=1, step=1)
+st.title("Système de recommandation de films")
+
+# Champs de saisie pour l'utilisateur
+user_id = st.number_input("Entrez l'ID utilisateur", min_value=1, max_value=ratings_df['userId'].max())
+n_top = st.number_input("Entrez le nombre de recommandations", min_value=1, max_value=20)
+
+# Bouton de soumission
 if st.button("Recommander"):
-    hybrid_recommendation(user_id)
+    hybrid_recommendation(user_id, n_top, ratings_df, movies_df, weighted_df, algo_model)
