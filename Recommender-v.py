@@ -9,7 +9,7 @@ import requests
 url_base = "https://raw.githubusercontent.com/AsmaM1983/movie-recommender/main/"
 movies_dfs = [pd.read_csv(f"{url_base}movies_df{i}.csv", on_bad_lines='skip') for i in range(1, 7)]
 movies_df = pd.concat(movies_dfs, ignore_index=True)
-ratings_df = pd.read_csv(f"{url_base}ratings_df.csv", on_bad_lines='skip')
+ratings_df = pd.read_csv(f"{url_base}ratings_small.csv", on_bad_lines='skip')
 
 # Charger le modèle et le DataFrame pondéré
 best_algo_model = joblib.load(requests.get(f"{url_base}best_algo_model.pkl", stream=True).raw)
