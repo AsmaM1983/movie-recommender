@@ -4,16 +4,24 @@ import torch
 from sentence_transformers import SentenceTransformer, util
 import joblib
 import requests
+import tempfile
 
 # Charger les datasets à partir de GitHub
 url_base = "https://raw.githubusercontent.com/AsmaM1983/movie-recommender/main/"
-movies_dfs = [pd.read_csv(f"{url_base}movies_df{i}.csv", on_bad_lines='skip') for i in range(1, 7)]
+movies_dfs = [pd.read_csv(f"{url_base}movies_df{i}.csv") for i in range(1, 7)]
 movies_df = pd.concat(movies_dfs, ignore_index=True)
-ratings_df = pd.read_csv(f"{url_base}ratings_small.csv", on_bad_lines='skip')
+ratings_df = pd.read_csv(f"{url_base}ratings_small.csv")
 
-# Charger le modèle et le DataFrame pondéré
-best_algo_model = joblib.load(requests.get(f"{url_base}best_algo_model.pkl", stream=True).raw)
-weighted_df = pd.read_csv(f"{url_base}weighted_df.csv", on_bad_lines='skip')
+# Télécharger et charger le modèle depuis une URL
+model_url = f"{url_base}best_algo_model.pkl"
+response = requests.get(model_url)
+with tempfile.NamedTemporaryFile(suffix=".pkl") as temp_file:
+    temp_file.write(response.content)
+    temp_file.flush()
+    best_algo_model = joblib.load(temp_file.name)
+
+# Charger le DataFrame pondéré
+weighted_df = pd.read_csv(f"{url_base}weighted_df.csv")
 
 # Charger le modèle BERT
 model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
