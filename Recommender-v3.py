@@ -4,30 +4,16 @@ import torch
 from sentence_transformers import SentenceTransformer, util
 import joblib
 import requests
-import rarfile
-from io import BytesIO
-
-# Fonction pour charger un fichier RAR depuis GitHub et en extraire le CSV
-def load_csv_from_rar(url, filename):
-    response = requests.get(url)
-    response.raise_for_status()  # Vérifie si la requête a réussi
-    rf = rarfile.RarFile(BytesIO(response.content))
-    with rf.open(filename) as f:
-        return pd.read_csv(f)
 
 # Charger les datasets à partir de GitHub
-url_base = "https://github.com/AsmaM1983/movie-recommender/raw/main/"
-movies_df = load_csv_from_rar(f"{url_base}movies_df.rar", "movies_df.csv")
+url_base = "https://raw.githubusercontent.com/AsmaM1983/movie-recommender/main/"
+movies_dfs = [pd.read_csv(f"{url_base}movies_df{i}.csv") for i in range(1, 7)]
+movies_df = pd.concat(movies_dfs, ignore_index=True)
 ratings_df = pd.read_csv(f"{url_base}ratings_df.csv")
+
+# Charger le modèle et le DataFrame pondéré
+best_algo_model = joblib.load(requests.get(f"{url_base}best_algo_model.pkl", stream=True).raw)
 weighted_df = pd.read_csv(f"{url_base}weighted_df.csv")
-
-# Charger le modèle depuis GitHub
-def load_model_from_github(url):
-    response = requests.get(url, stream=True)
-    response.raise_for_status()  # Vérifie si la requête a réussi
-    return joblib.load(BytesIO(response.content))
-
-best_algo_model = load_model_from_github(f"{url_base}best_algo_model.pkl")
 
 # Charger le modèle BERT
 model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
@@ -37,15 +23,6 @@ movies_df['combined_features'] = movies_df['title'] + ' ' + movies_df['bag_of_wo
 
 # Calculer les embeddings pour les films
 embeddings = model.encode(movies_df['combined_features'].tolist(), convert_to_tensor=True)
-
-# Fonction pour récupérer les scores pondérés
-def fetch_weighted_scores(movie_ids, weighted_df):
-    scores = {}
-    for movie_id in movie_ids:
-        if movie_id in weighted_df['id'].values:
-            score = weighted_df[weighted_df['id'] == movie_id]['weighted_score'].values[0]
-            scores[movie_id] = score
-    return scores
 
 # Fonction pour les recommandations hybrides
 def hybrid_recommendation_bert(user_id, algo_model, movies_df, embeddings, weighted_df, n=10):
@@ -83,7 +60,7 @@ def hybrid_recommendation_bert(user_id, algo_model, movies_df, embeddings, weigh
     
     return sorted_movies[:n]
 
-# Interface Streamlit
+# Streamlit interface
 st.title("Movie Recommendation System")
 
 user_id = st.number_input("Enter User ID", min_value=1, max_value=ratings_df['userId'].max())
@@ -94,3 +71,4 @@ if st.button("Recommend Movies"):
     for movie_id in recommendations:
         movie = movies_df[movies_df['id'] == movie_id].iloc[0]
         st.write(f"Title: {movie['title']}, Genres: {', '.join(movie['genres'])}, Year: {movie['year']}")
+
