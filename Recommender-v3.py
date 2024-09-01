@@ -4,21 +4,22 @@ import torch
 from sentence_transformers import SentenceTransformer, util
 import joblib
 import requests
-from io import BytesIO, StringIO
+import rarfile
+from io import BytesIO
 
-# Fonction pour charger des données à partir de GitHub
-def load_from_github(url):
+# Fonction pour charger un fichier RAR depuis GitHub et en extraire le CSV
+def load_csv_from_rar(url, filename):
     response = requests.get(url)
     response.raise_for_status()  # Vérifie si la requête a réussi
-    content = response.content.decode('utf-8')  # Décoder en texte
-    return pd.read_csv(StringIO(content))  # Utiliser StringIO pour lire le texte comme un fichier CSV
+    rf = rarfile.RarFile(BytesIO(response.content))
+    with rf.open(filename) as f:
+        return pd.read_csv(f)
 
 # Charger les datasets à partir de GitHub
 url_base = "https://github.com/AsmaM1983/movie-recommender/raw/main/"
-movies_dfs = [load_from_github(f"{url_base}movies_df{i}.csv") for i in range(1, 7)]
-movies_df = pd.concat(movies_dfs, ignore_index=True)
-ratings_df = load_from_github(f"{url_base}ratings_df.csv")
-weighted_df = load_from_github(f"{url_base}weighted_df.csv")
+movies_df = load_csv_from_rar(f"{url_base}movies_df.rar", "movies_df.csv")
+ratings_df = pd.read_csv(f"{url_base}ratings_df.csv")
+weighted_df = pd.read_csv(f"{url_base}weighted_df.csv")
 
 # Charger le modèle depuis GitHub
 def load_model_from_github(url):
@@ -82,7 +83,7 @@ def hybrid_recommendation_bert(user_id, algo_model, movies_df, embeddings, weigh
     
     return sorted_movies[:n]
 
-# Streamlit interface
+# Interface Streamlit
 st.title("Movie Recommendation System")
 
 user_id = st.number_input("Enter User ID", min_value=1, max_value=ratings_df['userId'].max())
